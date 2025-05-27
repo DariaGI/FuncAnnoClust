@@ -1,4 +1,4 @@
-# FuncAnnoClust
+# MGenTools
 
 The comparative genomics toolkit is implemented as a simple web application for users without programming skills.
 
@@ -8,7 +8,7 @@ It includes reclassification, computation and analysis applying:
 - clustering algorithms: k-means, Agglomerative Clustering, DBSCAN, Bayesian Gaussian Mixture,
 - dimensionality reduction methods: PCA, MDS, t-SNE,
 - and statistical tests: PERMANOVA, ANOSIM.
-  
+
 ### Install Docker Desktop
 https://docs.docker.com/desktop/
 
@@ -31,6 +31,7 @@ conda install -c conda-forge polars
 conda install -c conda-forge pyarrow
 conda install -c conda-forge scikit-bio
 conda install -c plotly plotly
+```
 
 ### Switch to work mode
 In FlaskApp/FlaskApp.py change:
@@ -38,8 +39,8 @@ In FlaskApp/FlaskApp.py change:
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
 ```
+
 ### Start web application
 ```bash 
 python3 FlaskApp/FlaskApp.py
 ```
-
