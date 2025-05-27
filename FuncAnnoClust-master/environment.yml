@@ -7,7 +7,6 @@ channels:
   - https://repo.anaconda.com/pkgs/msys2
 dependencies:
   - flask=3.1.0
-
   - numpy=1.26.4
   - numpy-base=1.26.4
   - numpydoc=1.7.0
