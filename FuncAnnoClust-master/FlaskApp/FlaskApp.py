@@ -6,14 +6,14 @@ import polars as pl
 from hadlers.Data import Data
 import xlsxwriter
 from hadlers.classifier import classifyFunctions
-from hadlers.AllClasDownload import all_classified
+from hadlers.allClassDownload import all_classified
 from hadlers.clsDisplay import displayClassification
 from hadlers.counter import countFunctions
-from hadlers.visualize_statistics import buildPlots
-from hadlers.visualize_statistics import statistic_test
+from hadlers.visualizeStatistics import buildPlots
+from hadlers.visualizeStatistics import statistic_test
 from hadlers.validator import validate
 from hadlers.validator import is_int, is_float
-from hadlers.memoryzip_plots import get_zip_buffer
+from hadlers.memoryzipPlots import get_zip_buffer
 from sys import getsizeof
 from typing import List
 import os
@@ -63,7 +63,7 @@ def index():
 
 @app.route('/analisis', methods=['get', 'post'])
 def analyse():
-    return render_template("analisis.html", dict=data.getClassified(), hierarchy=data.getHierarchy(), countTable=data.getCount(), plots=data.getPlots(), displayCount=1)
+    return render_template("analysis.html", dict=data.getClassified(), hierarchy=data.getHierarchy(), countTable=data.getCount(), plots=data.getPlots(), displayCount=1)
 
 @app.route('/documentation', methods=['get'])
 def documentation():
@@ -73,7 +73,7 @@ def documentation():
 @app.route('/reset', methods=['post'])
 def reset():
     data.reset()
-    return render_template("analisisCls.html", dict=data.getClassified(), displayCount=1)
+    return render_template("analysisCls.html", dict=data.getClassified(), displayCount=1)
 
 
 @app.route('/classify', methods=['post'])
@@ -93,7 +93,7 @@ def classify():
     data.setClassified(validated)  
     errors.append(errorDownloads)
 
-    return render_template("analisisCls.html", dict=data.getClassified(), displayCount=1, errors=errors)
+    return render_template("analysisCls.html", dict=data.getClassified(), displayCount=1, errors=errors)
 
 @app.route('/fullClassified', methods=['get', 'post'])
 def fullClassified():
@@ -108,7 +108,7 @@ def count():
     request_json_data = request.get_json()
     data.setCount(countFunctions(data, request_json_data))
 
-    return render_template("analisisCount.html", countTable=data.getCount())
+    return render_template("analysisCount.html", countTable=data.getCount())
 
 
 @app.route('/visualize', methods=['POST'])
@@ -186,7 +186,7 @@ def visualize():
         data.setPlots(buildPlots(**params))
 
     # Return the template with plots and error messages
-    return render_template("analisisVsl.html", plots=data.getPlots(), errors=errors)
+    return render_template("analysisVsl.html", plots=data.getPlots(), errors=errors)
 
 @app.route('/download/<type>/<filename>', methods=['GET'])
 def download(type, filename):
@@ -400,7 +400,7 @@ def analyze():
 
     errors: List[str] = errors  # Сюда передать список из ошибок
 
-    return render_template('statistic_test.html', result=data.getStatResults(), errors=errors)
+    return render_template('statisticTest.html', result=data.getStatResults(), errors=errors)
 
 
 # if __name__ == "__main__":
