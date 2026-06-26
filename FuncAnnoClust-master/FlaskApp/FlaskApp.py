@@ -61,7 +61,7 @@ if getsizeof(data.getHierarchy):
 def index():
      return render_template("index.html")
 
-@app.route('/analisis', methods=['get', 'post'])
+@app.route('/analysis', methods=['get', 'post'])
 def analyse():
     return render_template("analysis.html", dict=data.getClassified(), hierarchy=data.getHierarchy(), countTable=data.getCount(), plots=data.getPlots(), displayCount=1)
 

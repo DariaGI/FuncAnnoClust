@@ -76,10 +76,10 @@
     <Content Include="templates\breakdown.html" />
     <Content Include="templates\documentation.html" />
     <Content Include="templates\fullClassified.html" />
-    <Content Include="templates\analisisVsl.html" />
-    <Content Include="templates\analisisCount.html" />
-    <Content Include="templates\analisisCls.html" />
-    <Content Include="templates\analisis.html" />
+    <Content Include="templates\analysisVsl.html" />
+    <Content Include="templates\analysisCount.html" />
+    <Content Include="templates\analysisCls.html" />
+    <Content Include="templates\analysis.html" />
     <Content Include="templates\index.html" />
     <Content Include="static\styles\tables.css" />
   </ItemGroup>
