@@ -3,19 +3,34 @@ from skbio import TreeNode
 from io import StringIO
 import re
 
+
 def template(allowed_file_types, data, columns, error):
     content = pl.DataFrame()
     file_type = data.filename.split('.')[-1]
     if file_type in allowed_file_types:
-        if file_type =='tsv':
-            content = pl.read_csv(data, separator='\t')
-        else:
-            content = pl.read_csv(data, separator=';')
+        try:
+            if file_type == 'tsv':
+                content = pl.read_csv(
+                    data,
+                    separator='\t',
+                    quote_char=None,  # Отключаем обработку кавычек
+                    infer_schema_length=10000
+                )
+            else:
+                content = pl.read_csv(
+                    data,
+                    separator=';',
+                    infer_schema_length=10000
+                )
 
-        if set(columns).issubset(content.columns):
-            error = ''
-        else:
+            if set(columns).issubset(content.columns):
+                error = ''
+            else:
+                content = pl.DataFrame()
+        except Exception as e:
+            error = f"Ошибка чтения файла: {str(e)}"
             content = pl.DataFrame()
+
     return error, content
 
 def validate(data, type):
@@ -49,6 +64,3 @@ def is_float(value):
         return True
     except ValueError:
         return False
-
-
-
