@@ -3,427 +3,211 @@ import re
 
 
 def keywordsClassify(function, data):
+    if function in data.processed_kw_functions:
+        return 0
+
+    if function in data.kwCls_functions_set:
+        data.processed_kw_functions.add(function)
+        return 0
+
     kwClf = data.getKwCls()
     count = 0
 
-    if len(kwClf.filter(pl.col('Function').is_in([function]))) == 0:
-        if 'antibiotic' in function.lower() and 'biosynthesis' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Secondary Metabolism',
-                      'System': 'Bacterial cytostatics, differentiation factors and antibiotics',
-                      'Subsystem': 'Antibiotics biosynthesis',
-                      'Function': function}))
-            count += 1
+    func_lower = function.lower()
 
-        if 'dna polymerase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'DNA replication',
-                                  'Subsystem': 'DNA polymerase',
-                                  'Function': function}))
-            count += 1
+    def add_kw(category, system, subsystem):
+        nonlocal count
+        kwClf.extend(pl.DataFrame({
+            'Category': category,
+            'System': system,
+            'Subsystem': subsystem,
+            'Function': function
+        }))
+        count += 1
 
-        if 'methylase' in function.lower() and 'rna' not in function.lower() and (
-                'dna' in function.lower() or 'modification' in function.lower()):
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'DNA Metabolism - no subcategory',
-                                  'Subsystem': 'DNA methylation',
-                                  'Function': function}))
-            count += 1
+    if 'antibiotic' in func_lower and 'biosynthesis' in func_lower:
+        add_kw('Secondary Metabolism', 'Bacterial cytostatics, differentiation factors and antibiotics',
+               'Antibiotics biosynthesis')
 
-        if re.match(r'^T[1-6]SS', function):
-            romanNumbers = ['I', 'II', 'III', 'IV', 'V', 'VI']
-            type = re.search(r'[1-6]', function).group(0)
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Protein secretion system, Type ' + romanNumbers[int(type) - 1],
-                                  'Subsystem': 'T' + type + ' SS component',
-                                  'Function': function}))
-            count += 1
+    if 'dna polymerase' in func_lower:
+        add_kw('DNA Metabolism', 'DNA replication', 'DNA polymerase')
 
-        if 'integrase' in function.lower():
-            kwClf .extend(pl.DataFrame({'Category': 'Phages, Prophages, Transposable elements, Plasmids',
-                                  'System': 'Transposable elements',
-                                  'Subsystem': 'Integrase',
-                                  'Function': function}))
-            count += 1
+    if 'methylase' in func_lower and 'rna' not in func_lower and ('dna' in func_lower or 'modification' in func_lower):
+        add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'DNA methylation')
 
-        if 'transposon' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Phages, Prophages, Transposable elements, Plasmids',
-                                  'System': 'Transposable elements',
-                                  'Subsystem': 'Transposon',
-                                  'Function': function}))
-            count += 1
+    if re.match(r'^T[1-6]SS', function):
+        romanNumbers = ['I', 'II', 'III', 'IV', 'V', 'VI']
+        type_num = re.search(r'[1-6]', function).group(0)
+        add_kw('Membrane Transport', f'Protein secretion system, Type {romanNumbers[int(type_num) - 1]}',
+               f'T{type_num} SS component')
 
-        if 'transposase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Phages, Prophages, Transposable elements, Plasmids',
-                                  'System': 'Transposable elements',
-                                  'Subsystem': 'Transposase',
-                                  'Function': function}))
-            count += 1
+    if 'integrase' in func_lower:
+        add_kw('Phages, Prophages, Transposable elements, Plasmids', 'Transposable elements', 'Integrase')
 
-        if 'response regulator' in function.lower() or 'histidine kinase' in function.lower() or (
-                'two-component' in function.lower() and (
-                'response' in function.lower() or 'sensor' in function.lower())):
-            kwClf.extend(pl.DataFrame({'Category': 'Regulation and Cell signaling',
-                                  'System': 'Regulation and Cell signaling - no subcategory',
-                                  'Subsystem': 'Two-component regulatory system',
-                                  'Function': function}))
-            count += 1
-            if 'dna' in function.lower() and ' binding' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                      'System': 'Transcription',
-                                      'Subsystem': 'Two-component regulatory system',
-                                      'Function': function}))
+    if 'transposon' in func_lower:
+        add_kw('Phages, Prophages, Transposable elements, Plasmids', 'Transposable elements', 'Transposon')
 
-        if 'nuclease' in function.lower():
-            if 'dna' in function.lower() or 'deoxyribo' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'Nuclease',
-                                      'Function': function}))
-                count += 1
-            if ('rna' in function.lower() or 'ribo' in function.lower()) and 'deoxyribo' not in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                      'System': 'RNA processing and modification',
-                                      'Subsystem': 'Nuclease',
-                                      'Function': function}))
-                count += 1
-            if 'dna' not in function.lower() and 'rna' not in function.lower() and 'ribo' not in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'Nuclease',
-                                      'Function': function}))
-                kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                      'System': 'RNA processing and modification',
-                                      'Subsystem': 'Nuclease',
-                                      'Function': function}))
-                count += 1
+    if 'transposase' in func_lower:
+        add_kw('Phages, Prophages, Transposable elements, Plasmids', 'Transposable elements', 'Transposase')
 
-        if 'siderophore' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Membrane Transport - no subcategory',
-                                  'Subsystem': 'Siderophore',
-                                  'Function': function}))
-            count += 1
+    if 'response regulator' in func_lower or 'histidine kinase' in func_lower or (
+            'two-component' in func_lower and ('response' in func_lower or 'sensor' in func_lower)):
+        add_kw('Regulation and Cell signaling', 'Regulation and Cell signaling - no subcategory',
+               'Two-component regulatory system')
+        if 'dna' in func_lower and ' binding' in func_lower:
+            add_kw('RNA Metabolism', 'Transcription', 'Two-component regulatory system')
 
-        if 'rod shape' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Cell Wall and Capsule',
-                                  'System': 'Cell Wall and Capsule - no subcategory',
-                                  'Subsystem': 'Cell shape',
-                                  'Function': function}))
-            count += 1
+    if 'nuclease' in func_lower:
+        if 'dna' in func_lower or 'deoxyribo' in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Nuclease')
+        if ('rna' in func_lower or 'ribo' in func_lower) and 'deoxyribo' not in func_lower:
+            add_kw('RNA Metabolism', 'RNA processing and modification', 'Nuclease')
+        if 'dna' not in func_lower and 'rna' not in func_lower and 'ribo' not in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Nuclease')
+            add_kw('RNA Metabolism', 'RNA processing and modification', 'Nuclease')
 
-        if 'protein translocase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Protein transport',
-                                  'Subsystem': 'Protein transport',
-                                  'Function': function}))
-            count += 1
+    if 'siderophore' in func_lower:
+        add_kw('Membrane Transport', 'Membrane Transport - no subcategory', 'Siderophore')
 
-        if 'dipeptidase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Protein Metabolism',
-                                  'System': 'Protein degradation',
-                                  'Subsystem': 'Dipeptidases',
-                                  'Function': function}))
-            count += 1
+    if 'rod shape' in func_lower:
+        add_kw('Cell Wall and Capsule', 'Cell Wall and Capsule - no subcategory', 'Cell shape')
 
-        if ('protease' in function.lower() or 'peptidase' in function.lower()) and 'aminopeptidase' not in function.lower() and 'dipeptidase' not in function.lower() and 'synthase' not in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Protein Metabolism',
-                                  'System': 'Protein degradation',
-                                  'Subsystem': 'Protein degradation',
-                                  'Function': function}))
-            count += 1
+    if 'protein translocase' in func_lower:
+        add_kw('Membrane Transport', 'Protein transport', 'Protein transport')
 
-        if 'sigma factor' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'Transcription',
-                                  'Subsystem': 'Transcription initiation, bacterial sigma factors',
-                                  'Function': function}))
-            count += 1
+    if 'dipeptidase' in func_lower:
+        add_kw('Protein Metabolism', 'Protein degradation', 'Dipeptidases')
 
-        if 'rna' in function.lower() and (
-                'methyltransferase' in function.lower() or 'mnm' in function.lower() or 'methylase' in function.lower()):
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'RNA processing and modification',
-                                  'Subsystem': 'RNA methylation',
-                                  'Function': function}))
-            count += 1
+    if (
+            'protease' in func_lower or 'peptidase' in func_lower) and 'aminopeptidase' not in func_lower and 'dipeptidase' not in func_lower and 'synthase' not in func_lower:
+        add_kw('Protein Metabolism', 'Protein degradation', 'Protein degradation')
 
-        if 'rna' in function.lower() and 'methylthiotransferase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'RNA processing and modification',
-                                  'Subsystem': 'tRNA methylthiolation',
-                                  'Function': function}))
-            count += 1
+    if 'sigma factor' in func_lower:
+        add_kw('RNA Metabolism', 'Transcription', 'Transcription initiation, bacterial sigma factors')
 
-        if (
-                'polyribonucleotide' in function.lower() or 'rna' in function.lower()) and 'nucleotidyltransferase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'RNA processing and modification',
-                                  'Subsystem': 'RNA processing and degradation, bacterial',
-                                  'Function': function}))
-            count += 1
+    if 'rna' in func_lower and ('methyltransferase' in func_lower or 'mnm' in func_lower or 'methylase' in func_lower):
+        add_kw('RNA Metabolism', 'RNA processing and modification', 'RNA methylation')
 
-        if 'rna' in function.lower() and 'pseudouridine' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'RNA processing and modification',
-                                  'Subsystem': 'Pseudouridinylation',
-                                  'Function': function}))
-            count += 1
+    if 'rna' in func_lower and 'methylthiotransferase' in func_lower:
+        add_kw('RNA Metabolism', 'RNA processing and modification', 'tRNA methylthiolation')
 
-        if 'aminopeptidase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Protein Metabolism',
-                                  'System': 'Protein degradation',
-                                  'Subsystem': 'Aminopeptidases',
-                                  'Function': function}))
-            count += 1
+    if ('polyribonucleotide' in func_lower or 'rna' in func_lower) and 'nucleotidyltransferase' in func_lower:
+        add_kw('RNA Metabolism', 'RNA processing and modification', 'RNA processing and degradation, bacterial')
 
-        if 'helicase' in function.lower():
-            if 'dna' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'DNA helicase',
-                                      'Function': function}))
-            count += 1
-            if 'rna' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                      'System': 'RNA Metabolism - no subcategory',
-                                      'Subsystem': 'RNA helicase',
-                                      'Function': function}))
-            count += 1
+    if 'rna' in func_lower and 'pseudouridine' in func_lower:
+        add_kw('RNA Metabolism', 'RNA processing and modification', 'Pseudouridinylation')
 
-        if 'aerotolerance' in function.lower() or 'BatA' in function or 'BatB' in function or 'BatC' in function or 'BatD' in function or 'BatE' in function:
-            kwClf.extend(pl.DataFrame({'Category': 'Stress Response',
-                                  'System': 'Oxidative stress',
-                                  'Subsystem': 'Aerotolerance',
-                                  'Function': function}))
-            count += 1
+    if 'aminopeptidase' in func_lower:
+        add_kw('Protein Metabolism', 'Protein degradation', 'Aminopeptidases')
 
-        if 'vgrg' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Protein secretion system, Type VI',
-                                  'Subsystem': 'Actin cross-linking toxin',
-                                  'Function': function}))
-            count += 1
+    if 'helicase' in func_lower:
+        if 'dna' in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'DNA helicase')
+        if 'rna' in func_lower:
+            add_kw('RNA Metabolism', 'RNA Metabolism - no subcategory', 'RNA helicase')
 
-        if 'cell division' in function.lower() and ('protein' in function.lower() or 'trigger' in function.lower()):
-            kwClf.extend(pl.DataFrame({'Category': 'Cell Division and Cell Cycle',
-                                  'System': 'Cell Division and Cell Cycle - no subcategory',
-                                  'Subsystem': 'Cell division protein',
-                                  'Function': function}))
-            count += 1
+    if 'aerotolerance' in func_lower or 'BatA' in function or 'BatB' in function or 'BatC' in function or 'BatD' in function or 'BatE' in function:
+        add_kw('Stress Response', 'Oxidative stress', 'Aerotolerance')
 
-        if 'restriction' in function.lower() and (
-                'modification' in function.lower() or 'methylase' in function.lower()):
-            if 'type i ' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'Type I Restriction-Modification',
-                                      'Function': function}))
-                count += 1
-            if 'type ii ' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'Type II Restriction-Modification',
-                                      'Function': function}))
-                count += 1
-            if 'type iii ' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'Type III Restriction-Modification',
-                                      'Function': function}))
-                count += 1
-            if 'type iv ' in function.lower():
-                kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                      'System': 'DNA Metabolism - no subcategory',
-                                      'Subsystem': 'Type IV Restriction-Modification',
-                                      'Function': function}))
-                count += 1
+    if 'vgrg' in func_lower:
+        add_kw('Membrane Transport', 'Protein secretion system, Type VI', 'Actin cross-linking toxin')
 
-        if 'restriction enzyme' in function.lower() or 'restriction endonuclease' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'DNA Metabolism - no subcategory',
-                                  'Subsystem': 'Restriction Enzyme',
-                                  'Function': function}))
-            count += 1
+    if 'cell division' in func_lower and ('protein' in func_lower or 'trigger' in func_lower):
+        add_kw('Cell Division and Cell Cycle', 'Cell Division and Cell Cycle - no subcategory', 'Cell division protein')
 
-        if 'cluster' in function.lower() and 'iron' in function.lower() and 'sulfur' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Miscellaneous',
-                                  'System': 'Plant-Prokaryote DOE project',
-                                  'Subsystem': 'Iron-sulfur cluster assembly',
-                                  'Function': function}))
-            count += 1
+    if 'restriction' in func_lower and ('modification' in func_lower or 'methylase' in func_lower):
+        if 'type i ' in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Type I Restriction-Modification')
+        if 'type ii ' in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Type II Restriction-Modification')
+        if 'type iii ' in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Type III Restriction-Modification')
+        if 'type iv ' in func_lower:
+            add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Type IV Restriction-Modification')
 
-        if 'lipoprotein' in function.lower() and 'releas' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'ABC transporters',
-                                  'Subsystem': 'Lipoprotein-releasing system',
-                                  'Function': function}))
-            count += 1
+    if 'restriction enzyme' in func_lower or 'restriction endonuclease' in func_lower:
+        add_kw('DNA Metabolism', 'DNA Metabolism - no subcategory', 'Restriction Enzyme')
 
-        if 'lipopolysaccharide' in function.lower() and 'synthesis' in function.lower() and 'export' not in function.lower() and 'capsular' not in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Cell Wall and Capsule',
-                                  'System': 'Gram-Negative cell wall components',
-                                  'Subsystem': 'Lipopolysaccharides',
-                                  'Function': function}))
-            count += 1
+    if 'cluster' in func_lower and 'iron' in func_lower and 'sulfur' in func_lower:
+        add_kw('Miscellaneous', 'Plant-Prokaryote DOE project', 'Iron-sulfur cluster assembly')
 
-        if 'polysaccharide' in function.lower() and 'synthesis' in function.lower() and 'export' not in function.lower() and 'capsular' not in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Carbohydrates',
-                                  'System': 'Polysaccharides',
-                                  'Subsystem': 'Polysaccharide biosynthesis',
-                                  'Function': function}))
-            count += 1
+    if 'lipoprotein' in func_lower and 'releas' in func_lower:
+        add_kw('Membrane Transport', 'ABC transporters', 'Lipoprotein-releasing system')
 
-        if 'lpt' in function.lower() and 'protein' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Cell Wall and Capsule',
-                                  'System': 'Gram-Negative cell wall components',
-                                  'Subsystem': 'Lipoprotein sorting system',
-                                  'Function': function}))
-            count += 1
+    if 'lipopolysaccharide' in func_lower and 'synthesis' in func_lower and 'export' not in func_lower and 'capsular' not in func_lower:
+        add_kw('Cell Wall and Capsule', 'Gram-Negative cell wall components', 'Lipopolysaccharides')
 
-        if 'capsular' in function.lower() and 'polysaccharide' in function.lower() and 'synthesis' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Cell Wall and Capsule',
-                                  'System': 'Capsular and extracellular polysacchrides',
-                                  'Subsystem': 'Capsular Polysaccharides Biosynthesis and Assembly',
-                                  'Function': function}))
-            count += 1
+    if 'polysaccharide' in func_lower and 'synthesis' in func_lower and 'export' not in func_lower and 'capsular' not in func_lower:
+        add_kw('Carbohydrates', 'Polysaccharides', 'Polysaccharide biosynthesis')
 
-        if 'crisp' in function.lower() and 'repeat' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'CRISPs',
-                                  'Subsystem': 'CRISPRs',
-                                  'Function': function}))
-            count += 1
+    if 'lpt' in func_lower and 'protein' in func_lower:
+        add_kw('Cell Wall and Capsule', 'Gram-Negative cell wall components', 'Lipoprotein sorting system')
 
-        if 'crisp' in function.lower() and 'spacer' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'CRISPs',
-                                  'Subsystem': 'Spacers',
-                                  'Function': function}))
-            count += 1
+    if 'capsular' in func_lower and 'polysaccharide' in func_lower and 'synthesis' in func_lower:
+        add_kw('Cell Wall and Capsule', 'Capsular and extracellular polysacchrides',
+               'Capsular Polysaccharides Biosynthesis and Assembly')
 
-        if 'crisp' in function.lower() and ('ramp' in function.lower() or 'cas' in function.lower()):
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'CRISPs',
-                                  'Subsystem': 'CRISPR-associated proteins',
-                                  'Function': function}))
-            count += 1
+    if 'crisp' in func_lower and 'repeat' in func_lower:
+        add_kw('DNA Metabolism', 'CRISPs', 'CRISPRs')
 
-        if 'transport' in function.lower() and 'ABC' not in function and (
-                'antiport' not in function.lower() or 'symport' not in function.lower() or 'uniport' not in function.lower()):
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Membrane Transport - no subcategory',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'crisp' in func_lower and 'spacer' in func_lower:
+        add_kw('DNA Metabolism', 'CRISPs', 'Spacers')
 
-        if 'ABC' not in function and 'antiport' in function.lower() or 'symport' in function.lower() or 'uniport' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Uni- Sym- and Antiporters',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'crisp' in func_lower and ('ramp' in func_lower or 'cas' in func_lower):
+        add_kw('DNA Metabolism', 'CRISPs', 'CRISPR-associated proteins')
 
-        if 'resist' in function.lower() and 'phage' not in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Virulence, Disease and Defense',
-                                  'System': 'Resistance to antibiotics and toxic compounds',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'transport' in func_lower and 'ABC' not in function and (
+            'antiport' not in func_lower or 'symport' not in func_lower or 'uniport' not in func_lower):
+        add_kw('Membrane Transport', 'Membrane Transport - no subcategory', 'none')
 
-        if 'resist' in function.lower() and 'phage' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Virulence, Disease and Defense',
-                                  'System': 'Virulence, Disease and Defense - no subcategory',
-                                  'Subsystem': 'Phage defence',
-                                  'Function': function}))
-            count += 1
+    if ('ABC' not in function and 'antiport' in func_lower) or 'symport' in func_lower or 'uniport' in func_lower:
+        add_kw('Membrane Transport', 'Uni- Sym- and Antiporters', 'none')
 
-        if 'cytochrome' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Respiration',
-                                  'System': 'Respiration - no subcategory',
-                                  'Subsystem': 'Cytochrome',
-                                  'Function': function}))
-            count += 1
+    if 'resist' in func_lower and 'phage' not in func_lower:
+        add_kw('Virulence, Disease and Defense', 'Resistance to antibiotics and toxic compounds', 'none')
 
-        if 'heat' in function.lower() and 'shock' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Stress Response',
-                                  'System': 'Heat shock',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'resist' in func_lower and 'phage' in func_lower:
+        add_kw('Virulence, Disease and Defense', 'Virulence, Disease and Defense - no subcategory', 'Phage defence')
 
-        if 'cold' in function.lower() and 'shock' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Stress Response',
-                                  'System': 'Cold shock',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'cytochrome' in func_lower:
+        add_kw('Respiration', 'Respiration - no subcategory', 'Cytochrome')
 
-        if 'cold' in function.lower() and 'shock' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Stress Response',
-                                  'System': 'Stress Response - no subcategory',
-                                  'Subsystem': 'Phage shock',
-                                  'Function': function}))
-            count += 1
+    if 'heat' in func_lower and 'shock' in func_lower:
+        add_kw('Stress Response', 'Heat shock', 'none')
 
-        if 'ABC' in function and 'transport' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'ABC-transporters',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'cold' in func_lower and 'shock' in func_lower:
+        add_kw('Stress Response', 'Cold shock', 'none')
+        add_kw('Stress Response', 'Stress Response - no subcategory', 'Phage shock')
 
-        if 'tonB' in function or 'TonB' in function:
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Membrane Transport - no subcategory',
-                                  'Subsystem': 'Ton and Tol transopt system',
-                                  'Function': function}))
-            count += 1
+    if 'ABC' in function and 'transport' in func_lower:
+        add_kw('Membrane Transport', 'ABC-transporters', 'none')
 
-        if 'ribosomal protein' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Protein Metabolism',
-                                  'System': 'Protein biosynthesis',
-                                  'Subsystem': 'Ribosome LSU/SSU bacterial',
-                                  'Function': function}))
-            count += 1
+    if 'tonB' in function or 'TonB' in function:
+        add_kw('Membrane Transport', 'Membrane Transport - no subcategory', 'Ton and Tol transopt system')
 
-        if 'dna' in function.lower() and 'repair' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'DNA repair',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'ribosomal protein' in func_lower:
+        add_kw('Protein Metabolism', 'Protein biosynthesis', 'Ribosome LSU/SSU bacterial')
 
-        if 'tRNA-' in function and len(function) < 16:
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'RNA processing and modification',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'dna' in func_lower and 'repair' in func_lower:
+        add_kw('DNA Metabolism', 'DNA repair', 'none')
 
-        if 'transcription' in function.lower() and 'regulator' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'RNA Metabolism',
-                                  'System': 'RNA processing and modification',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'tRNA-' in function and len(function) < 16:
+        add_kw('RNA Metabolism', 'RNA processing and modification', 'none')
 
-        if 'type' in function.lower() and 'secretion' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'Membrane Transport',
-                                  'System': 'Protein secretion system',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'transcription' in func_lower and 'regulator' in func_lower:
+        add_kw('RNA Metabolism', 'RNA processing and modification', 'none')
 
-        if 'topoisomerase' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'DNA replication',
-                                  'Subsystem': 'DNA topoisomerases',
-                                  'Function': function}))
-            count += 1
+    if 'type' in func_lower and 'secretion' in func_lower:
+        add_kw('Membrane Transport', 'Protein secretion system', 'none')
 
-        if 'replication' in function.lower():
-            kwClf.extend(pl.DataFrame({'Category': 'DNA Metabolism',
-                                  'System': 'DNA replication',
-                                  'Subsystem': 'none',
-                                  'Function': function}))
-            count += 1
+    if 'topoisomerase' in func_lower:
+        add_kw('DNA Metabolism', 'DNA replication', 'DNA topoisomerases')
+
+    if 'replication' in func_lower:
+        add_kw('DNA Metabolism', 'DNA replication', 'none')
+
+    if count > 0:
+        data.kwCls_functions_set.add(function)
+
+    data.processed_kw_functions.add(function)
+    return count
