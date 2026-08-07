@@ -1,6 +1,7 @@
 import polars as pl
 import pandas as pd
 
+
 class Data():
 
     def __init__(self):
@@ -21,6 +22,9 @@ class Data():
         self.statistics_results = {}
         self.cluster = pd.DataFrame()
 
+        self.processed_kw_functions = set()
+        self.kwCls_functions_set = set()
+
     def reset(self):
         self.kwCls = pl.DataFrame(data=[], schema=[
             ('Category', pl.Utf8),
@@ -36,6 +40,9 @@ class Data():
         self.distance_matrix = {}
         self.statistics_results = {}
         self.cluster = pd.DataFrame()
+
+        self.processed_kw_functions.clear()
+        self.kwCls_functions_set.clear()
 
     def setRastCls(self, file):
         self.rastCls = file
@@ -101,14 +108,13 @@ class Data():
         self.distance_matrix = {}
 
     def setStatResults(self, file):
-        self.statistics_results=file
+        self.statistics_results = file
 
     def getStatResults(self):
         return self.statistics_results
 
     def resStatResults(self):
         self.cluster = pd.DataFrame()
-
 
     def setCluster(self, file):
         self.cluster = file
